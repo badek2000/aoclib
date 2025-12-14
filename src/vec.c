@@ -8,7 +8,7 @@
 static bool _checkOverflow(size_t a, size_t b, size_t *out);
 static AoC_vec_rc_e _vecGrowIfNeeded(AoC_vec_t *vec, size_t needed_len);
 
-void AoC_vecInit(AoC_vec_t *v, size_t elem_size) {
+AoC_vec_rc_e AoC_vecInit(AoC_vec_t *v, size_t elem_size) {
     if ((!v) || (elem_size == 0)) return AOC_VEC_BADARG;
 
     v->data = NULL;
@@ -90,14 +90,14 @@ const void *AoC_vecGetConst(const AoC_vec_t *v, size_t idx) {
 }
 
 AoC_vec_rc_e AoC_vecSet(AoC_vec_t *v, size_t idx, const void *elem) {
-    if ((!v) || idx >= v->length) return NULL;
+    if ((!v) || idx >= v->length) return AOC_VEC_BADARG;
     if (idx >= v->length) return AOC_VEC_BOUNDS;
     memcpy((char*)v->data + idx * v->elem_size, elem, v->elem_size);
     return AOC_VEC_OK;
 }
 
 AoC_vec_rc_e AoC_vecPush(AoC_vec_t *v, const void *elem) {
-    if ((!v) || (!elem)) return NULL;
+    if ((!v) || (!elem)) return AOC_VEC_BADARG;
     AoC_vec_rc_e ret = _vecGrowIfNeeded(v, v->length + 1);
     if (ret != AOC_VEC_OK) return ret;
 
@@ -119,11 +119,47 @@ AoC_vec_rc_e AoC_vecPop(AoC_vec_t *v, void *out_elem) {
 }
 
 AoC_vec_rc_e AoC_vecInsert(AoC_vec_t *v, size_t idx, const void *elem) {
+    if (!v || !elem) return AOC_VEC_BADARG;
+    if (idx > v->length) return AOC_VEC_BOUNDS;
 
+    AoC_vec_rc_e ret = _vecGrowIfNeeded(v, v->length + 1);
+    if (ret != AOC_VEC_OK) return ret;
+
+    char *base = (char*)v->data;
+    
+    if (idx < v->length) {
+        memmove(
+            base + (idx + 1) * v->elem_size,
+            base + idx * v->elem_size,
+            (v->length - idx) * v->elem_size
+        );
+    }
+
+    memcpy(base + idx * v->elem_size, elem, v->elem_size);
+    ++v->length;
+    return AOC_VEC_OK;
 }
 
-AoC_vec_rc_e AoC_vecErase(AoC_vec_t *v, size_t idx, const void *out_elem) {
-    
+AoC_vec_rc_e AoC_vecErase(AoC_vec_t *v, size_t idx, void *out_elem) {
+    if (!v) return AOC_VEC_BADARG;
+    if (idx >= v->length) return AOC_VEC_BOUNDS;
+
+    char *base = (char*)v->data;
+
+    if (out_elem) {
+        memcpy(out_elem, base + idx * v->elem_size, v->elem_size);
+    }
+
+    if (idx + 1 < v->length) {
+        memmove(
+            base + idx * v->length,
+            base + (idx + 1) * v->elem_size,
+            (v->length - idx - 1) * v->elem_size
+        );
+    }
+
+    --v->length;
+    return AOC_VEC_OK;
 }
 
 static bool _checkOverflow(size_t a, size_t b, size_t *out) {
@@ -151,4 +187,6 @@ static AoC_vec_rc_e _vecGrowIfNeeded(AoC_vec_t *v, size_t needed_len) {
 
         return AoC_vecReserve(v, new_cap);
     }
+
+    return AOC_VEC_OOM;   
 }

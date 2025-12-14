@@ -25,3 +25,13 @@ int AoC_parseFile(char* file_name, AoC_parserFun parserFunction, void* args) {
     free(line);
     return fclose(fp);
 }
+
+bool AoC_isNumerical(char c) {
+    return ('0' <= c) && (c <= '9');    
+}
+bool AoC_isAlpha(char c) {
+    return ('a' <= c) && (c <= 'Z');
+}
+bool AoC_isAlphanumerical(char c) {
+    return AoC_isAlpha(c) || AoC_isNumerical(c);
+}
