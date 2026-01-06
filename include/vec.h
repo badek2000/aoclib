@@ -28,7 +28,7 @@ AoC_vec_rc_e AoC_vecReserve(AoC_vec_t *v, size_t new_cap);
 AoC_vec_rc_e AoC_vecShrinkToFit(AoC_vec_t *v);
 void AoC_vecClear(AoC_vec_t *v);
 
-void *AoC_vecGet(AoC_vec_t *v, size_t idx);
+void *AoC_vecGet(const AoC_vec_t *v, size_t idx);
 const void *AoC_vecGetConst(const AoC_vec_t *v, size_t idx);
 
 AoC_vec_rc_e AoC_vecSet(AoC_vec_t *v, size_t idx, const void *elem);
@@ -37,6 +37,13 @@ AoC_vec_rc_e AoC_vecPush(AoC_vec_t *v, const void *elem);
 AoC_vec_rc_e AoC_vecPop(AoC_vec_t *v, void *out_elem);
 AoC_vec_rc_e AoC_vecInsert(AoC_vec_t *v, size_t idx, const void *elem);
 AoC_vec_rc_e AoC_vecErase(AoC_vec_t *v, size_t idx, void *out_elem);
+AoC_vec_rc_e AoC_vecSwap(AoC_vec_t *v, void* a, void *b);
+
+typedef int(*eq_t)(const void *a, const void *b);
+bool AoC_vecCheckIfUnique(const AoC_vec_t *v, const void *elem, eq_t eq);
+AoC_vec_rc_e AoC_vecSort(AoC_vec_t *v, eq_t eq);
+
+const char* AoC_vecRcToString(const AoC_vec_rc_e rc);
 
 #define AOC_VEC_INIT_TYPED(v, T) AoC_vecInit((v), sizeof(T))
 #define AOC_VEC_GET_AS(v, T, i) ((T*) AoC_vecGet((v), (i)))

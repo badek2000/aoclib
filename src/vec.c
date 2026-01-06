@@ -5,6 +5,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <stdio.h>
+
+#define DEFUALT_INITIAL_CAP (8)
+#define DEFAULT_GROW_COEF   (2)
+
 static bool _checkOverflow(size_t a, size_t b, size_t *out);
 static AoC_vec_rc_e _vecGrowIfNeeded(AoC_vec_t *vec, size_t needed_len);
 
@@ -79,7 +84,7 @@ void AoC_vecClear(AoC_vec_t *v) {
     v->length = 0;
 }
 
-void *AoC_vecGet(AoC_vec_t *v, size_t idx) {
+void *AoC_vecGet(const AoC_vec_t *v, size_t idx) {
     if ((!v) || (idx >= v->length)) return NULL;
     return (char*)v->data + idx * v->elem_size;
 }
@@ -99,6 +104,7 @@ AoC_vec_rc_e AoC_vecSet(AoC_vec_t *v, size_t idx, const void *elem) {
 AoC_vec_rc_e AoC_vecPush(AoC_vec_t *v, const void *elem) {
     if ((!v) || (!elem)) return AOC_VEC_BADARG;
     AoC_vec_rc_e ret = _vecGrowIfNeeded(v, v->length + 1);
+    printf("%s\n", AoC_vecRcToString(ret));
     if (ret != AOC_VEC_OK) return ret;
 
     memcpy((char*)v->data + v->length * v->elem_size, elem, v->elem_size);
@@ -162,6 +168,70 @@ AoC_vec_rc_e AoC_vecErase(AoC_vec_t *v, size_t idx, void *out_elem) {
     return AOC_VEC_OK;
 }
 
+AoC_vec_rc_e AoC_vecSwap(AoC_vec_t *v, void *a, void *b) {
+    if ((!v) || (!a) || (!b) || (v->elem_size == 0)) {
+        return AOC_VEC_BADARG;
+    }
+
+    void* tmp = malloc(v->elem_size);
+    
+    memcpy(a, b, v->elem_size);
+    memcpy(b, tmp, v->elem_size);
+    
+    free(tmp);
+
+    return AOC_VEC_OK;
+}
+
+bool AoC_vecCheckIfUnique(const AoC_vec_t *v, const void *elem, eq_t eq) {
+    if ((!v) || (!elem) || (!eq)) return false;
+    size_t cnt = 0;
+    
+    printf("len: %lu\n", AoC_vecLength(v));
+    for (size_t i = 0; i < AoC_vecLength(v); ++i) {
+        if (eq(elem, AoC_vecGet(v, i)) == 0) ++cnt;
+    }
+
+    return (cnt < 2);
+}
+
+AoC_vec_rc_e AoC_vecSort(AoC_vec_t *v, eq_t eq) {
+    if ((!v) || (!eq)) return AOC_VEC_BADARG;
+    void* elem_1 = NULL; 
+    void* elem_2 = NULL;
+
+    AoC_vec_rc_e ret = 0;
+
+    for (size_t i = 0; i < AoC_vecLength(v); ++i) {
+        elem_1 = AoC_vecGet(v, i);
+        for (size_t j = 0; j < AoC_vecLength(v); ++j) {
+            elem_2 = AoC_vecGet(v, j);
+            if (eq(elem_1, elem_2) > 0) {
+                ret = AoC_vecSwap(v, elem_1, elem_2);
+                if (ret != AOC_VEC_OK) return ret;
+            }
+        }
+    }
+
+    return AOC_VEC_OK;
+}
+
+const char* AoC_vecRcToString(const AoC_vec_rc_e rc) {
+    switch (rc)
+    {
+    case AOC_VEC_OK:
+        return "AOC_VEC_OK";
+    case AOC_VEC_OOM:
+        return "AOC_VEC_OOM";
+    case AOC_VEC_BOUNDS:
+        return "AOC_VEC_BOUNDS";
+    case AOC_VEC_BADARG:
+        return "AOC_VEC_BADARG";
+    default:
+        return "AOC_VEC_UNKNOWN_ERR";
+    }
+}
+
 static bool _checkOverflow(size_t a, size_t b, size_t *out) {
     if ((a == 0) || (b == 0)) {
         *out = 0;
@@ -177,9 +247,11 @@ static bool _checkOverflow(size_t a, size_t b, size_t *out) {
 static AoC_vec_rc_e _vecGrowIfNeeded(AoC_vec_t *v, size_t needed_len) {
     if (needed_len <= v->capacity) return AOC_VEC_OK;
 
-    size_t new_cap = (v->capacity == 0) ? 8 :v->capacity;
+    size_t new_cap = (v->capacity == 0) ? 
+                     (DEFUALT_INITIAL_CAP) : 
+                     (DEFAULT_GROW_COEF * v->capacity);
+
     while (new_cap < needed_len) {
-        // grow x2
         if (new_cap > SIZE_MAX / 2) {
             new_cap = needed_len;
             break;
@@ -188,5 +260,5 @@ static AoC_vec_rc_e _vecGrowIfNeeded(AoC_vec_t *v, size_t needed_len) {
         return AoC_vecReserve(v, new_cap);
     }
 
-    return AOC_VEC_OOM;   
+    return AOC_VEC_OK;   
 }
